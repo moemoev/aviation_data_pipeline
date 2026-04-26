@@ -223,3 +223,6 @@ airflow.db
 logs/
 *.pid
 *.log
+
+# Airflow project local config (do not version)
+config/
