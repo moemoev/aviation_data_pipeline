@@ -1,6 +1,6 @@
 # Aviation Data Pipeline
 
-This project explores aviation data from the OpenSky API and incrementally builds a data pipeline for ingestion, transformation, and orchestration.
+This project explores aviation data from the OpenSky API and incrementally builds a data pipeline for ingestion, transformation, and orchestration using Apache Airflow.
 
 ## Overview
 
@@ -15,7 +15,8 @@ The goals of this project are to:
 
 - Data extraction from OpenSky API  
 - Initial data exploration using Jupyter notebooks  
-- Transformation of state vectors into tabular format  
+- Transformation of state vectors into tabular format
+- Execution of the workflow using Apache Airflow
 
 ## Version 1 – Minimal Working Pipeline
 
@@ -61,7 +62,7 @@ ingestion → transformation → storage → orchestration.
 
 The next phase focuses on improving and extending the existing Airflow pipeline.
 
-A pre-existing Airflow setup from *Data Engineering with Apache Airflow* is used as a **local development environment**. This provides Docker configuration and base Airflow services required to run and test DAGs.
+The project uses a local Airflow Docker environment (based on a pre-configured setup) for orchestration and testing. This environment is external to the project and used only for development purposes.
 
 > Note: The Airflow infrastructure is not part of this project. It is used as an external development environment for learning and pipeline testing.
 
