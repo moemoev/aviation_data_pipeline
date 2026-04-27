@@ -18,6 +18,11 @@ The goals of this project are to:
 - Transformation of state vectors into tabular format
 - Execution of the workflow using Apache Airflow
 
+- DAG scheduling has been implemented and verified (automatic scheduled runs working)  
+- Pipeline logic has been partially modularized (configuration values like paths and API endpoints are now variable-based instead of fully hardcoded)  
+- Basic schema definition has been introduced for transformed data columns  
+- Initial error handling added for API requests and data transformation steps  
+
 ## Version 1 – Minimal Working Pipeline
 
 This version implements a minimal end-to-end data pipeline using Apache Airflow.
@@ -28,6 +33,22 @@ This version implements a minimal end-to-end data pipeline using Apache Airflow.
 - Stores the processed data as a CSV file inside the Airflow worker container  
 - Executes the workflow through an Airflow DAG  
 
+### Utility Refactor (Recent Update)
+
+Introduced reusable utility module: `plugins/utils/file_io.py`
+
+- `read_json(path)`
+- `read_csv(path)`
+
+Added `__init__.py` files to enable proper Python package imports:
+`plugins/__init__.py`, `plugins/utils/__init__.py`
+
+Updated Docker Compose to include:
+
+`PYTHONPATH=/opt/airflow/plugins`
+
+This allows DAGs to import custom utility functions.
+
 ### Purpose
 The goal of this version is to validate the core pipeline flow:
 ingestion → transformation → storage → orchestration.
@@ -36,25 +57,27 @@ ingestion → transformation → storage → orchestration.
 - Data is stored in `/tmp` inside the container (ephemeral storage)  
 - Pipeline logic is implemented directly inside the DAG  
 - Focus on simplicity to verify functionality before adding complexity  
+- Some configuration values (paths, API endpoints) have been extracted into variables to reduce hardcoding  
 
 ### Limitations
 - Data is not persisted across container restarts  
-- No error handling or retry logic  
-- No schema validation or type enforcement  
-- Hardcoded file paths and API endpoint  
-- Pipeline is triggered manually (no scheduling yet)  
+- Basic error handling exists, but no full retry strategy yet  
+- Schema validation is only partially implemented via configuration definitions  
+- Some file paths and configuration values are still hardcoded in parts of the pipeline  
+- Pipeline is now scheduled, but still in early testing phase
 
 ### Next Improvements
-- Add error handling and logging  
-- Introduce scheduling in Airflow  
+- Improve error handling and logging consistency across all tasks  
+- Fully refactor remaining hardcoded values into configuration layer  
+- Strengthen schema validation and enforce it during transformation 
 - Refactor logic into reusable modules (`src/`)  
-- Add data validation and schema checks  
 - Replace CSV with a more robust storage solution (e.g. Parquet or database) 
 
 ## Project Structure
 
-- `notebooks/` – exploratory analysis and experimentation  
-- `src/` – reusable pipeline components (in progress)  
+- `notebooks/` – exploratory analysis and experimentation
+- `config/` – Central configuration files (API settings, paths, schema definitions)
+- `plugins/` – Reusable utility modules (e.g. file I/O helpers for DAGs)
 - `dags/` – Airflow DAG definitions for orchestration
 - `data/` – raw and processed datasets (excluded from version control)  
 
@@ -71,7 +94,8 @@ The first DAG:
 - Fetches aviation data from the OpenSky API  
 - Applies the transformation logic  
 - Stores the processed dataset locally as a CSV file  
-
+- Runs on a scheduled interval using Airflow (automated execution enabled)
+- 
 This serves as the initial proof of concept for integrating ingestion, transformation, and orchestration.
 
 ## Tech Stack
