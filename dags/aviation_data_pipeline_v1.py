@@ -1,71 +1,73 @@
-# from airflow import DAG
-# from airflow.operators.python import PythonOperator
-# import pendulum
-#
-# def test():
-#     print("AIRFLOW DAG IS WORKING")
-#
-# with DAG(
-#     dag_id="aviation_pipeline_test",
-#     start_date=pendulum.datetime(2024, 1, 1, tz="UTC"),
-#     schedule=None,
-#     catchup=False,
-# ) as dag:
-#
-#     task = PythonOperator(
-#         task_id="print_test",
-#         python_callable=test
-#     )
-
 import pandas as pd
 import pathlib
 import json
+import yaml
 import pendulum
 import requests
 
-from airflow.providers.standard.operators.bash import BashOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow import DAG
+from airflow.operators.python import get_current_context
+
+
+from plugins.utils.file_io import read_json, read_csv
+
+with open("config/api_config.yaml", "r") as file:
+    config = yaml.safe_load(file)
+
+with open("config/path_config.yaml", "r") as file:
+    path = yaml.safe_load(file)
+
+with open("config/schema_config.yaml", "r") as file:
+    schema = yaml.safe_load(file)
+
+PATH_RAW = path['paths']['raw_storage']
+PATH_TRANSFORMED = path['paths']['transformed_storage']
+
+start = pendulum.datetime(2026 , 4, 27 , 13, 59, tz="Europe/Berlin")
+end = start.add(minutes=2)
 
 
 
+def _extract_data(ti):
+    run_id = ti.run_id.replace(":", "_")
 
-def _get_raw_data():
-    pathlib.Path("/tmp/data").mkdir(parents=True, exist_ok=True)
+    pathlib.Path(PATH_RAW).mkdir(parents=True, exist_ok=True)
 
-
-    url = "https://opensky-network.org/api/states/all"
+    url = config['aviation_api']
     response = requests.get(url)
     data = response.json()
 
-
-    with open("/tmp/data/raw_data.json", "w") as f:
+    with open(f"{PATH_RAW}/opensky_raw_{run_id}.json", "w") as f:
         json.dump(data, f)
 
+    return run_id
 
-    return
+def _transform_data(ti):
 
-def _expand_raw_data():
-    pathlib.Path("/tmp/dataset").mkdir(parents=True, exist_ok=True)
+    run_id = ti.xcom_pull(task_ids="extract_data")
 
-    categories = ['icao240', 'callsign', 'origin_country', 'time_position', 'last_contact', 'longitude', 'latitude',
-                  'baro_altitude', 'on_ground', 'velocity', 'true_track', 'vertical_rate', 'sensors', 'geo_altitude',
-                  'squawk', 'spi', 'position_source']
+    pathlib.Path(f"{PATH_TRANSFORMED}").mkdir(parents=True, exist_ok=True)
 
-    with open("/tmp/data/raw_data.json") as f:
-        raw_data = json.load(f)
+    columns = schema["aviation_states"]["columns"]
 
-    aviation_expanded = pd.DataFrame(raw_data["states"])
-    aviation_expanded.columns = categories[:aviation_expanded.shape[1]]
-    aviation_expanded.insert(0, "time", raw_data["time"])
+    file_path = f"{PATH_RAW}/opensky_raw_{run_id}.json"
+    raw_data = read_json(file_path)
 
+    transformed_data = pd.DataFrame(raw_data['states'])
+    transformed_data.columns = columns[:transformed_data.shape[1]]
+    transformed_data.insert(0, 'time', raw_data['time'])
 
-    aviation_expanded.to_csv("/tmp/dataset/aviation_expanded.csv", index=False)
+    transformed_data.to_csv(f"{PATH_TRANSFORMED}/opensky_cleaned_{run_id}.csv", index=False)
 
-    return
+    return run_id
 
-def notify():
-    raw_data = pd.read_csv("/tmp/dataset/aviation_expanded.csv")
+def notify(ti):
+    run_id = ti.xcom_pull(task_ids="transform_data")
+
+    file_path = f"{PATH_TRANSFORMED}/opensky_cleaned_{run_id}.csv"
+
+    raw_data = read_csv(file_path)
 
     total_rows = raw_data.shape[0]
     timestamp = raw_data["time"].unique()
@@ -78,16 +80,18 @@ def notify():
 
 with DAG(
     dag_id="aviation_data_pipeline_v1",
-    start_date=pendulum.today("UTC").add(days=-14),
-    schedule=None,
+    start_date=start,
+    end_date=end,
+    schedule="* * * * *",
+    catchup=False,
 ):
-    get_raw_data = PythonOperator(task_id="get_raw_data", python_callable=_get_raw_data)
+    extract_data = PythonOperator(task_id="extract_data", python_callable=_extract_data)
 
-    expand_raw_data = PythonOperator(task_id="expand_raw_data", python_callable=_expand_raw_data)
+    transform_data = PythonOperator(task_id="transform_data", python_callable=_transform_data)
 
     notify = PythonOperator(task_id="notify", python_callable=notify)
 
-    get_raw_data >> expand_raw_data >> notify
+    extract_data >> transform_data >> notify
 
 
 
