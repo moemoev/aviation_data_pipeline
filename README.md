@@ -35,10 +35,14 @@ This version implements a minimal end-to-end data pipeline using Apache Airflow.
 
 ### Utility Refactor (Recent Update)
 
-Introduced reusable utility module: `plugins/utils/file_io.py`
+Introduced reusable utility module: `plugins/utils/file_io.py` `plugins/utils/api_io.py`
 
 - `read_json(path)`
 - `read_csv(path)`
+- `write_json(path, file_name, data)`
+- `write_csv(path, file_name, data)`
+
+- `request_api(url)`
 
 Added `__init__.py` files to enable proper Python package imports:
 `plugins/__init__.py`, `plugins/utils/__init__.py`
@@ -61,15 +65,16 @@ ingestion → transformation → storage → orchestration.
 
 ### Limitations
 - Data is not persisted across container restarts  
-- Basic error handling exists, but no full retry strategy yet  
+- Basic error handling exists for read/write operations, but no full retry strategy yet  
 - Schema validation is only partially implemented via configuration definitions  
-- Some file paths and configuration values are still hardcoded in parts of the pipeline  
-- Pipeline is now scheduled, but still in early testing phase
+- Few remaining file paths and configuration values are still hardcoded in parts of the pipeline  
+- Pipeline is now scheduled, but still in early testing phase(reverted to manually triggering for smooth testing/execution)
 
 ### Next Improvements
-- Improve error handling and logging consistency across all tasks  
+- Improve logging consistency across all tasks using logger
+- Unify path building to remove duplication accross DAG tasks
 - Fully refactor remaining hardcoded values into configuration layer  
-- Strengthen schema validation and enforce it during transformation 
+- Strengthen schema validation and enforce it during transformation using pandera
 - Refactor logic into reusable modules (`src/`)  
 - Replace CSV with a more robust storage solution (e.g. Parquet or database) 
 
@@ -94,8 +99,8 @@ The first DAG:
 - Fetches aviation data from the OpenSky API  
 - Applies the transformation logic  
 - Stores the processed dataset locally as a CSV file  
-- Runs on a scheduled interval using Airflow (automated execution enabled)
-- 
+- Runs on a triggered execution
+
 This serves as the initial proof of concept for integrating ingestion, transformation, and orchestration.
 
 ## Tech Stack
