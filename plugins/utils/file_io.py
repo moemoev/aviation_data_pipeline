@@ -2,6 +2,10 @@ import json
 import pathlib
 import pandas as pd
 
+from plugins.utils.logger import setup_logger
+
+logger = setup_logger(name="file_io")
+
 def read_json(path: str)-> dict:
     if not pathlib.Path(path).exists():
         raise FileNotFoundError(f"File not found: {path}")

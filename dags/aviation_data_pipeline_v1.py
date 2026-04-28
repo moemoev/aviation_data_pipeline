@@ -58,7 +58,7 @@ def _transform_data(ti):
 def notify(ti):
     run_id = ti.xcom_pull(task_ids="transform_data")
 
-    file_path = f"{PATH_TRANSFORMED}/opensky_cleaned_{run_id}.csv"
+    file_path = f"{PATH_TRANSFORMED}/opensky_transformed_{run_id}.csv"
 
     raw_data = read_csv(file_path)
 
