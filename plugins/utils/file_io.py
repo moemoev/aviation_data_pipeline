@@ -3,6 +3,7 @@ import pathlib
 import pandas as pd
 
 from plugins.utils.logger import setup_logger
+from plugins.utils.paths import build_path
 
 logger = setup_logger(name="file_io")
 
@@ -46,10 +47,7 @@ def read_csv(path: str)-> pd.DataFrame:
 
 def write_json(path: str, file_name: str, data: dict)-> None:
 
-    dir_path = pathlib.Path(path)
-    dir_path.mkdir(parents=True, exist_ok=True)
-
-    full_path = dir_path / f"{file_name}.json"
+    full_path = build_path(path, file_name, "json")
 
     try:
         with open(full_path, "w") as f:
@@ -62,10 +60,8 @@ def write_json(path: str, file_name: str, data: dict)-> None:
         raise
 
 def write_csv(path: str, file_name: str, data: pd.DataFrame)-> None:
-    dir_path = pathlib.Path(path)
-    dir_path.mkdir(parents=True, exist_ok=True)
 
-    full_path = dir_path / f"{file_name}.csv"
+    full_path = build_path(path, file_name, "csv")
 
     try:
         data.to_csv(full_path, index=False)
