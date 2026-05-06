@@ -1,5 +1,4 @@
 import pandas as pd
-import pathlib
 import yaml
 import pendulum
 
@@ -29,7 +28,7 @@ start = pendulum.datetime(2026 , 4, 27 , 13, 59, tz="Europe/Berlin")
 
 def _extract_data(ti):
     run_id = ti.run_id.replace(":", "_")
-
+    #data = {"states": [], "time": 0}
     data = request_api(url=config['aviation_api'])
 
     # write data to file

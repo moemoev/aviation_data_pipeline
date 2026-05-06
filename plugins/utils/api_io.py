@@ -11,11 +11,11 @@ def request_api(url: str)-> dict:
         response.raise_for_status()
         data = response.json()
 
-        logger.info(f"Successfully received data from API: {url}")
+        logger.info(f"Successfully fetched data from API: {url}")
         return data
 
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Api request failed for {url}: {e}")
-        raise RuntimeError(f"Api request failed for {url}: {e}")
+    except Exception:
+        logger.exception(f"Api request failed for {url}")
+        raise
 
 
