@@ -1,6 +1,10 @@
 from pathlib import Path
 
 def build_path(path: str , file_name: str, extension: str) -> Path:
+    """
+    Build path
+
+    """
     dir_path = Path(path)
     dir_path.mkdir(parents=True, exist_ok=True)
 

@@ -6,6 +6,7 @@ from airflow.providers.standard.operators.python import PythonOperator
 from airflow import DAG
 from airflow.operators.python import get_current_context
 
+from plugins.validations.validate_schema import validate_dataframe_schema
 from plugins.utils.api_io import request_api
 from plugins.utils.file_io import read_json, read_csv, write_json, write_csv
 
@@ -20,6 +21,7 @@ with open("config/schema_config.yaml", "r") as file:
 
 PATH_RAW = path['paths']['raw_storage']
 PATH_TRANSFORMED = path['paths']['transformed_storage']
+PATH_CUSTOM_LOGS = path['paths']['logs_storage']
 
 start = pendulum.datetime(2026 , 4, 27 , 13, 59, tz="Europe/Berlin")
 # end = start.add(minutes=2)
@@ -48,6 +50,8 @@ def _transform_data(ti):
     transformed_data = pd.DataFrame(raw_data['states'])
     transformed_data.columns = columns[:transformed_data.shape[1]]
     transformed_data.insert(0, 'time', raw_data['time'])
+
+    validate_dataframe_schema(transformed_data, path=PATH_CUSTOM_LOGS)
 
     write_csv(path=PATH_TRANSFORMED, file_name=f"opensky_transformed_{run_id}", data=transformed_data)
 

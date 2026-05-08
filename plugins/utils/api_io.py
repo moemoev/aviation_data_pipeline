@@ -4,6 +4,10 @@ from plugins.utils.logger import setup_logger
 logger = setup_logger(name="request_api")
 
 def request_api(url: str)-> dict:
+    """
+    Request API
+
+    """
     logger.info(f"Requesting data from API: {url}")
 
     try:

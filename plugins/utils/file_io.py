@@ -12,6 +12,10 @@ logger = setup_logger(name="file_io")
 # --------------------
 
 def read_json(path: str)-> dict:
+    """
+    read a JSON file
+
+    """
     if not pathlib.Path(path).exists():
         raise FileNotFoundError(f"File not found: {path}")
 
@@ -28,6 +32,10 @@ def read_json(path: str)-> dict:
 
 
 def read_csv(path: str)-> pd.DataFrame:
+    """
+    Read a CSV file
+
+    """
     if not pathlib.Path(path).exists():
         raise FileNotFoundError(f"File not found: {path}")
 
@@ -46,6 +54,10 @@ def read_csv(path: str)-> pd.DataFrame:
 # --------------------
 
 def write_json(path: str, file_name: str, data: dict)-> None:
+    """
+    Write data to a JSON file
+
+    """
 
     full_path = build_path(path, file_name, "json")
 
@@ -60,7 +72,10 @@ def write_json(path: str, file_name: str, data: dict)-> None:
         raise
 
 def write_csv(path: str, file_name: str, data: pd.DataFrame)-> None:
+    """
+    Write data to a CSV file
 
+    """
     full_path = build_path(path, file_name, "csv")
 
     try:
