@@ -6,6 +6,10 @@ from airflow.providers.standard.operators.python import PythonOperator
 from airflow import DAG
 from airflow.operators.python import get_current_context
 
+import psycopg2
+import os
+from sqlalchemy import create_engine
+
 from plugins.validations.validate_schema import validate_dataframe_schema
 from plugins.utils.api_io import request_api
 from plugins.utils.file_io import read_json, read_csv, write_json, write_csv
@@ -19,9 +23,18 @@ with open("config/path_config.yaml", "r") as file:
 with open("config/schema_config.yaml", "r") as file:
     schema = yaml.safe_load(file)
 
+
 PATH_RAW = path['paths']['raw_storage']
 PATH_TRANSFORMED = path['paths']['transformed_storage']
 PATH_CUSTOM_LOGS = path['paths']['logs_storage']
+
+CONN_POSTGRESQL = (
+    f"postgresql+psycopg2://"
+    f"{os.getenv('POSTGRES_USER')}:"
+    f"{os.getenv('POSTGRES_PASSWORD')}@"
+    f"{os.getenv('POSTGRES_HOST')}:"
+    f"{os.getenv('POSTGRES_PORT')}/"
+    f"{os.getenv('POSTGRES_DB')}")
 
 start = pendulum.datetime(2026 , 4, 27 , 13, 59, tz="Europe/Berlin")
 # end = start.add(minutes=2)
@@ -58,6 +71,20 @@ def _transform_data(ti):
 
     return run_id
 
+def _load_data(ti):
+
+    run_id = ti.xcom_pull(task_ids="transform_data")
+
+    file_path = f"{PATH_TRANSFORMED}/opensky_transformed_{run_id}.csv"
+
+    df = pd.read_csv(file_path)
+
+    engine = create_engine(CONN_POSTGRESQL)
+
+    df.to_sql("data", con=engine, index=False, if_exists="replace")
+
+    return run_id
+
 def notify(ti):
     run_id = ti.xcom_pull(task_ids="transform_data")
 
@@ -85,9 +112,11 @@ with DAG(
 
     transform_data = PythonOperator(task_id="transform_data", python_callable=_transform_data)
 
+    load_data = PythonOperator(task_id="load_data", python_callable=_load_data)
+
     notify = PythonOperator(task_id="notify", python_callable=notify)
 
-    extract_data >> transform_data >> notify
+    extract_data >> transform_data >> load_data >> notify
 
 
 
