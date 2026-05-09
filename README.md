@@ -11,72 +11,75 @@ The goals of this project are to:
 - Transform raw state vectors into a structured format  
 - Establish the foundation for an ETL pipeline using Apache Airflow  
 
+## Pipeline Architecture
+OpenSky API → Airflow DAG → Transform (Pandas) → Validate (Pandera) → CSV → PostgreSQL
+
 ## Current Status
 
+### Pipeline Implementation
 - Data extraction from OpenSky API  
-- Initial data exploration using Jupyter notebooks  
 - Transformation of state vectors into tabular format
-- Execution of the workflow using Apache Airflow
+- Loading from CSV into local PostgreSQL DB on on a separated VM within a private network
+- Execution of the workflow using Apache Airflow Containers on host OS
 
+### Orchestration
 - DAG scheduling has been implemented and verified (automatic scheduled runs working)  
 - Pipeline logic has been partially modularized (configuration values like paths and API endpoints are now variable-based instead of fully hardcoded)  
+
+### Engineering Improvements
 - Basic schema definition has been introduced for transformed data columns  
 - Initial error handling added for API requests and data transformation steps  
 
-## Version 1 – Minimal Working Pipeline
 
-This version implements a minimal end-to-end data pipeline using Apache Airflow.
+### Data Validation
 
-### What it does
-- Fetches aviation data from the OpenSky API  
-- Transforms the raw JSON response into a structured tabular format  
-- Stores the processed data as a CSV file inside the Airflow worker container  
-- Executes the workflow through an Airflow DAG  
+Introduced validations module: `plugins/validations/schema.py` `plugins/validations/validate_schema.py`
 
-### Utility Refactor (Recent Update)
+- `aviation_schema`
+- `validate_dataframe_schema(df, path)`
 
-Introduced reusable utility module: `plugins/utils/file_io.py` `plugins/utils/api_io.py`
+Updated Docker Compose .env to include:
+`_PIP_ADDITIONAL_REQUIREMENTS=pandera`
+`POSTGRES_USER`
+`POSTGRES_PASSWORD`
+`POSTGRES_HOST`
+`POSTGRES_PORT`
+`POSTGRES_DB`
 
-- `read_json(path)`
-- `read_csv(path)`
-- `write_json(path, file_name, data)`
-- `write_csv(path, file_name, data)`
+This allows:
+- schema validation via Pandera
+- externalized database configuration (no hardcoding inside DAGs)
 
-- `request_api(url)`
-
-Added `__init__.py` files to enable proper Python package imports:
-`plugins/__init__.py`, `plugins/utils/__init__.py`
-
-Updated Docker Compose to include:
-
-`PYTHONPATH=/opt/airflow/plugins`
-
-This allows DAGs to import custom utility functions.
-
-### Purpose
-The goal of this version is to validate the core pipeline flow:
-ingestion → transformation → storage → orchestration.
 
 ### Design decisions
-- Data is stored in `/tmp` inside the container (ephemeral storage)  
+- Data is stored in `/tmp` inside the container (ephemeral storage)
 - Pipeline logic is implemented directly inside the DAG  
 - Focus on simplicity to verify functionality before adding complexity  
-- Some configuration values (paths, API endpoints) have been extracted into variables to reduce hardcoding  
+- Some configuration values (paths, API endpoints) have been extracted into variables
 
 ### Limitations
-- Data is not persisted across container restarts  
+- Data is not persisted across container restarts 
 - Basic error handling exists for read/write operations, but no full retry strategy yet  
-- Schema validation is only partially implemented via configuration definitions  
-- Few remaining file paths and configuration values are still hardcoded in parts of the pipeline  
-- Pipeline is now scheduled, but still in early testing phase(reverted to manually triggering for smooth testing/execution)
+- Schema validation is still minimal (initial Pandera integration only)
+- Some configuration values are still partially hardcoded
+- Pipeline is still in early testing phase and primarily manually triggered for debugging
 
 ### Next Improvements
-- Improve logging consistency across all tasks using logger
-- Unify path building to remove duplication accross DAG tasks
-- Fully refactor remaining hardcoded values into configuration layer  
-- Strengthen schema validation and enforce it during transformation using pandera
-- Refactor logic into reusable modules (`src/`)  
-- Replace CSV with a more robust storage solution (e.g. Parquet or database) 
+
+#### Data Layer
+- Design staging structure inside PostgreSQL
+- Improve schema enforcement during transformation
+- Transform data into more structured relational format
+
+#### Pipeline
+- Strengthen schema validation using Pandera
+- Add backfilling support from API
+- Improve scheduling strategy (move beyond manual triggering)
+
+#### Exploration
+- Adjust scope of fetched data (e.g. filter by country)
+- Explore 24/7 ingestion possibilities with authenticated API access
+
 
 ## Project Structure
 
@@ -86,20 +89,8 @@ ingestion → transformation → storage → orchestration.
 - `dags/` – Airflow DAG definitions for orchestration
 - `data/` – raw and processed datasets (excluded from version control)  
 
-## Next Steps
-
-The next phase focuses on improving and extending the existing Airflow pipeline.
-
-The project uses a local Airflow Docker environment (based on a pre-configured setup) for orchestration and testing. This environment is external to the project and used only for development purposes.
 
 > Note: The Airflow infrastructure is not part of this project. It is used as an external development environment for learning and pipeline testing.
-
-The first DAG:
-
-- Fetches aviation data from the OpenSky API  
-- Applies the transformation logic  
-- Stores the processed dataset locally as a CSV file  
-- Runs on a triggered execution
 
 This serves as the initial proof of concept for integrating ingestion, transformation, and orchestration.
 
