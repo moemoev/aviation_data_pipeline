@@ -1,7 +1,7 @@
 import pandas as pd
 
 from pandera.errors import SchemaErrors
-from .schema import aviation_schema
+from plugins.validations.schema import aviation_schema
 from plugins.utils.logger import setup_logger
 from plugins.utils.file_io import write_csv
 

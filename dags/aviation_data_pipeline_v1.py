@@ -6,13 +6,15 @@ from airflow.providers.standard.operators.python import PythonOperator
 from airflow import DAG
 from airflow.operators.python import get_current_context
 
-import psycopg2
 import os
 from sqlalchemy import create_engine
 
 from plugins.validations.validate_schema import validate_dataframe_schema
+from plugins.etl.transform import transform_raw_data
 from plugins.utils.api_io import request_api
 from plugins.utils.file_io import read_json, read_csv, write_json, write_csv
+from plugins.utils.generate_token import get_token
+
 
 with open("config/api_config.yaml", "r") as file:
     config = yaml.safe_load(file)
@@ -42,9 +44,11 @@ start = pendulum.datetime(2026 , 4, 27 , 13, 59, tz="Europe/Berlin")
 
 
 def _extract_data(ti):
+
+    token = get_token()
+
     run_id = ti.run_id.replace(":", "_")
-    #data = {"states": [], "time": 0}
-    data = request_api(url=config['aviation_api'])
+    data = request_api(url=config['aviation_api'], token=token)
 
     # write data to file
     write_json(path=PATH_RAW, file_name=f"opensky_raw_{run_id}", data=data)
@@ -55,14 +59,11 @@ def _transform_data(ti):
 
     run_id = ti.xcom_pull(task_ids="extract_data")
 
-    columns = schema["aviation_states"]["columns"]
-
     source_file_path = f"{PATH_RAW}/opensky_raw_{run_id}.json"
+
     raw_data = read_json(source_file_path)
 
-    transformed_data = pd.DataFrame(raw_data['states'])
-    transformed_data.columns = columns[:transformed_data.shape[1]]
-    transformed_data.insert(0, 'time', raw_data['time'])
+    transformed_data = transform_raw_data(raw_data)
 
     validate_dataframe_schema(transformed_data, path=PATH_CUSTOM_LOGS)
 
