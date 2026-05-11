@@ -1,7 +1,6 @@
 import os
 import requests
 
-
 CLIENT_ID=os.getenv('OPENSKY_CLIENT_ID')
 CLIENT_SECRET=os.getenv('OPENSKY_CLIENT_SECRET')
 

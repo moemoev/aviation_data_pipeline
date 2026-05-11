@@ -6,7 +6,7 @@ from plugins.utils.logger import setup_logger
 from plugins.utils.file_io import write_csv
 
 logger = setup_logger("validate_schema")
-
+#TODO: don't forget the path for the logs you are not using at all right now! at least not properly
 def validate_dataframe_schema(df: pd.DataFrame, path=None) -> pd.DataFrame:
     """
     Validate the dataframe schema

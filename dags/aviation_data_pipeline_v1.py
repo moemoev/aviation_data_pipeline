@@ -9,11 +9,11 @@ from airflow.operators.python import get_current_context
 import os
 from sqlalchemy import create_engine
 
-from plugins.validations.validate_schema import validate_dataframe_schema
 from plugins.etl.transform import transform_raw_data
-from plugins.utils.api_io import request_api
-from plugins.utils.file_io import read_json, read_csv, write_json, write_csv
-from plugins.utils.generate_token import get_token
+from plugins.etl.extract import extract_from_api
+
+from plugins.utils.file_io import read_csv
+
 
 
 
@@ -38,19 +38,15 @@ CONN_POSTGRESQL = (
     f"{os.getenv('POSTGRES_DB')}")
 
 start = pendulum.datetime(2026 , 4, 27 , 13, 59, tz="Europe/Berlin")
-# end = start.add(minutes=2)
+#end = start.add(minutes=60)
 
 
 
 def _extract_data(ti):
 
-    token = get_token()
-
     run_id = ti.run_id.replace(":", "_")
-    data = request_api(token=token)
 
-    # write data to file
-    write_json(path=PATH_RAW, file_name=f"opensky_raw_{run_id}", data=data)
+    extract_from_api(run_id=run_id, path=PATH_RAW)
 
     return run_id
 
@@ -58,16 +54,12 @@ def _transform_data(ti):
 
     run_id = ti.xcom_pull(task_ids="extract_data")
 
-    source_file_path = f"{PATH_RAW}/opensky_raw_{run_id}.json"
-
-    raw_data = read_json(source_file_path)
-
-    transformed_data = transform_raw_data(raw_data)
-
-    validate_dataframe_schema(transformed_data, path=PATH_CUSTOM_LOGS)
-
-    write_csv(path=PATH_TRANSFORMED, file_name=f"opensky_transformed_{run_id}", data=transformed_data)
-
+    transform_raw_data(
+        run_id=run_id,
+        path_raw=PATH_RAW,
+        path_transformed=PATH_TRANSFORMED,
+        path_custom_logs=PATH_CUSTOM_LOGS
+    )
 
     return run_id
 
@@ -85,7 +77,7 @@ def _load_data(ti):
 
     return run_id
 
-def notify(ti):
+def _notify(ti):
     run_id = ti.xcom_pull(task_ids="transform_data")
 
     file_path = f"{PATH_TRANSFORMED}/opensky_transformed_{run_id}.csv"
@@ -104,8 +96,8 @@ def notify(ti):
 with DAG(
     dag_id="aviation_data_pipeline_v1",
     start_date=start,
-    # end_date=end,
-    schedule=None,
+    #end_date=end,
+    schedule=None, #"*/5 * * * *",
     catchup=False,
 ):
     extract_data = PythonOperator(task_id="extract_data", python_callable=_extract_data)
@@ -114,7 +106,7 @@ with DAG(
 
     load_data = PythonOperator(task_id="load_data", python_callable=_load_data)
 
-    notify = PythonOperator(task_id="notify", python_callable=notify)
+    notify = PythonOperator(task_id="notify", python_callable=_notify)
 
     extract_data >> transform_data >> load_data >> notify
 

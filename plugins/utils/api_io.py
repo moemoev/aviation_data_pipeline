@@ -12,7 +12,7 @@ def request_api(token:str)-> dict:
     Request API
 
     """
-    url = build_request_string()
+    url = get_request_string()
 
     logger.info(f"Requesting data from API: {url}")
 
@@ -35,7 +35,7 @@ def request_api(token:str)-> dict:
         logger.exception(f"Api request failed for {url}")
         raise
 
-def build_request_string() -> str:
+def get_request_string() -> str:
 
     logger.info(f"Building Request string: Box Values for Germany")
 
@@ -44,7 +44,8 @@ def build_request_string() -> str:
                           f"lamin={config['la_min']}&"
                           f"lomin={config['lo_min']}&"
                           f"lamax={config['la_max']}&"
-                          f"lomax={config['lo_max']}&")
+                          f"lomax={config['lo_max']}"
+                          )
 
         logger.info(f"API REQUEST URL: {request_string}")
 
@@ -53,3 +54,4 @@ def build_request_string() -> str:
     except Exception:
         logger.exception(f"Building request string failed.")
         raise
+
