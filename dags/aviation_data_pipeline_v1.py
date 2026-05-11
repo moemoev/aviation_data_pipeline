@@ -16,8 +16,7 @@ from plugins.utils.file_io import read_json, read_csv, write_json, write_csv
 from plugins.utils.generate_token import get_token
 
 
-with open("config/api_config.yaml", "r") as file:
-    config = yaml.safe_load(file)
+
 
 with open("config/path_config.yaml", "r") as file:
     path = yaml.safe_load(file)
@@ -48,7 +47,7 @@ def _extract_data(ti):
     token = get_token()
 
     run_id = ti.run_id.replace(":", "_")
-    data = request_api(url=config['aviation_api'], token=token)
+    data = request_api(token=token)
 
     # write data to file
     write_json(path=PATH_RAW, file_name=f"opensky_raw_{run_id}", data=data)
