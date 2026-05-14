@@ -1,7 +1,7 @@
 import pandas as pd
 import yaml
 
-from plugins.utils.file_io import read_json, write_csv
+from plugins.utils.file_io import read_json, write_parquet
 from plugins.validations.validate_schema import validate_dataframe_schema
 
 
@@ -24,4 +24,4 @@ def transform_raw_data(run_id, path_raw: str, path_transformed: str, path_custom
 
     validate_dataframe_schema(transformed_data, path=path_custom_logs)
 
-    write_csv(path=path_transformed, file_name=f"opensky_transformed_{run_id}", data=transformed_data)
+    write_parquet(path=path_transformed, file_name=f"opensky_transformed_{run_id}", data=transformed_data)

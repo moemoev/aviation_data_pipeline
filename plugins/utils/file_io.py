@@ -31,22 +31,22 @@ def read_json(path: str)-> dict:
 
 
 
-def read_csv(path: str)-> pd.DataFrame:
+def read_parquet(path: str)-> pd.DataFrame:
     """
-    Read a CSV file
+    Read a Parquet file
 
     """
     if not pathlib.Path(path).exists():
         raise FileNotFoundError(f"File not found: {path}")
 
     try:
-        df = pd.read_csv(path)
+        df = pd.read_parquet(path)
 
-        logger.info(f"Successfully read CSV file from {path}")
+        logger.info(f"Successfully read parquet file from {path}")
         return df
 
     except Exception:
-        logger.exception(f"Failed to read CSV (possibly corrupted) from {path}")
+        logger.exception(f"Failed to read Parquet (possibly corrupted) from {path}")
         raise
 
 # --------------------
@@ -71,19 +71,19 @@ def write_json(path: str, file_name: str, data: dict)-> None:
         logger.exception(f"Failed to write JSON file at {full_path}")
         raise
 
-def write_csv(path: str, file_name: str, data: pd.DataFrame)-> None:
+def write_parquet(path: str, file_name: str, data: pd.DataFrame)-> None:
     """
-    Write data to a CSV file
+    Write data to a Parquet file
 
     """
-    full_path = build_path(path, file_name, "csv")
+    full_path = build_path(path, file_name, "parquet")
 
     try:
-        data.to_csv(full_path, index=False)
+        data.to_parquet(full_path, index=False)
 
-        logger.info(f"Successfully wrote CSV file at: {full_path}")
+        logger.info(f"Successfully wrote Parquet file at: {full_path}")
 
     except Exception:
-        logger.exception(f"Failed to write CSV file at {full_path}")
+        logger.exception(f"Failed to write Parquet file at {full_path}")
         raise
 

@@ -12,7 +12,7 @@ from sqlalchemy import create_engine
 from plugins.etl.transform import transform_raw_data
 from plugins.etl.extract import extract_from_api
 
-from plugins.utils.file_io import read_csv
+from plugins.utils.file_io import read_parquet
 
 
 
@@ -67,9 +67,9 @@ def _load_data(ti):
 
     run_id = ti.xcom_pull(task_ids="transform_data")
 
-    file_path = f"{PATH_TRANSFORMED}/opensky_transformed_{run_id}.csv"
+    file_path = f"{PATH_TRANSFORMED}/opensky_transformed_{run_id}.parquet"
 
-    df = pd.read_csv(file_path)
+    df = pd.read_parquet(file_path)
 
     engine = create_engine(CONN_POSTGRESQL)
 
@@ -80,14 +80,14 @@ def _load_data(ti):
 def _notify(ti):
     run_id = ti.xcom_pull(task_ids="transform_data")
 
-    file_path = f"{PATH_TRANSFORMED}/opensky_transformed_{run_id}.csv"
+    file_path = f"{PATH_TRANSFORMED}/opensky_transformed_{run_id}.parquet"
 
-    raw_data = read_csv(file_path)
+    raw_data = read_parquet(file_path)
 
     total_rows = raw_data.shape[0]
     timestamp = raw_data["time"].unique()
 
-    print(f"CSV Summary:")
+    print(f"Parquet Summary:")
     print(f"- Rows: {total_rows}")
     print(f"- time: {timestamp}")
 
