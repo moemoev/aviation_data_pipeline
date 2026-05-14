@@ -10,7 +10,7 @@ with open("config/schema_config.yaml", "r") as file:
     schema = yaml.safe_load(file)
 
 
-def transform_raw_data(run_id, path_custom_logs: str):
+def transform_raw_data(run_id):
 
     path_raw = raw_file(run_id=run_id)
     raw_data = read_json(path=path_raw)

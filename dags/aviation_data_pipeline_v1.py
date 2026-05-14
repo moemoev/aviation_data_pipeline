@@ -1,11 +1,7 @@
-import yaml
 import pendulum
 
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow import DAG
-
-
-import os
 
 from plugins.etl.extract import extract_from_api
 from plugins.etl.transform import transform_raw_data
@@ -16,22 +12,6 @@ from pathlib import Path
 from plugins.utils.file_io import read_parquet
 
 
-
-with open("config/path_config.yaml", "r") as file:
-    path = yaml.safe_load(file)
-
-
-PATH_RAW = path['paths']['raw_storage']
-PATH_TRANSFORMED = path['paths']['transformed_storage']
-PATH_CUSTOM_LOGS = path['paths']['logs_storage']
-
-CONN_POSTGRESQL = (
-    f"postgresql+psycopg2://"
-    f"{os.getenv('POSTGRES_USER')}:"
-    f"{os.getenv('POSTGRES_PASSWORD')}@"
-    f"{os.getenv('POSTGRES_HOST')}:"
-    f"{os.getenv('POSTGRES_PORT')}/"
-    f"{os.getenv('POSTGRES_DB')}")
 
 start = pendulum.datetime(2026 , 4, 27 , 13, 59, tz="Europe/Berlin")
 #end = start.add(minutes=60)
@@ -50,7 +30,7 @@ def _transform_data(ti):
 
     run_id = ti.xcom_pull(task_ids="extract_data")
 
-    transform_raw_data(run_id=run_id,path_custom_logs=PATH_CUSTOM_LOGS)
+    transform_raw_data(run_id=run_id)
 
     return run_id
 
@@ -58,10 +38,7 @@ def _load_data(ti):
 
     run_id = ti.xcom_pull(task_ids="transform_data")
 
-    load_files(
-        run_id=run_id,
-        conn_db=CONN_POSTGRESQL,
-    )
+    load_files(run_id=run_id)
 
     return run_id
 
