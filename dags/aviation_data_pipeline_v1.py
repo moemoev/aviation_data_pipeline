@@ -1,28 +1,24 @@
-import pandas as pd
 import yaml
 import pendulum
 
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow import DAG
-from airflow.operators.python import get_current_context
+
 
 import os
-from sqlalchemy import create_engine
 
-from plugins.etl.transform import transform_raw_data
 from plugins.etl.extract import extract_from_api
+from plugins.etl.transform import transform_raw_data
+from plugins.etl.load import load_files
+
+from pathlib import Path
 
 from plugins.utils.file_io import read_parquet
 
 
 
-
-
 with open("config/path_config.yaml", "r") as file:
     path = yaml.safe_load(file)
-
-with open("config/schema_config.yaml", "r") as file:
-    schema = yaml.safe_load(file)
 
 
 PATH_RAW = path['paths']['raw_storage']
@@ -46,7 +42,7 @@ def _extract_data(ti):
 
     run_id = ti.run_id.replace(":", "_")
 
-    extract_from_api(run_id=run_id, path=PATH_RAW)
+    extract_from_api(run_id=run_id)
 
     return run_id
 
@@ -54,12 +50,7 @@ def _transform_data(ti):
 
     run_id = ti.xcom_pull(task_ids="extract_data")
 
-    transform_raw_data(
-        run_id=run_id,
-        path_raw=PATH_RAW,
-        path_transformed=PATH_TRANSFORMED,
-        path_custom_logs=PATH_CUSTOM_LOGS
-    )
+    transform_raw_data(run_id=run_id,path_custom_logs=PATH_CUSTOM_LOGS)
 
     return run_id
 
@@ -67,22 +58,18 @@ def _load_data(ti):
 
     run_id = ti.xcom_pull(task_ids="transform_data")
 
-    file_path = f"{PATH_TRANSFORMED}/opensky_transformed_{run_id}.parquet"
-
-    df = pd.read_parquet(file_path)
-
-    engine = create_engine(CONN_POSTGRESQL)
-
-    df.to_sql("data", con=engine, index=False, if_exists="replace")
+    load_files(
+        run_id=run_id,
+        conn_db=CONN_POSTGRESQL,
+    )
 
     return run_id
 
 def _notify(ti):
+    #note: for verification purpose, has to be removed
     run_id = ti.xcom_pull(task_ids="transform_data")
 
-    file_path = f"{PATH_TRANSFORMED}/opensky_transformed_{run_id}.parquet"
-
-    raw_data = read_parquet(file_path)
+    raw_data = read_parquet(Path(f"/tmp/transformed/opensky_transformed_{run_id}.parquet"))
 
     total_rows = raw_data.shape[0]
     timestamp = raw_data["time"].unique()

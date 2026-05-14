@@ -3,7 +3,6 @@ import pathlib
 import pandas as pd
 
 from plugins.utils.logger import setup_logger
-from plugins.utils.paths import build_path
 
 logger = setup_logger(name="file_io")
 
@@ -11,16 +10,17 @@ logger = setup_logger(name="file_io")
 # READ FUNCTIONS
 # --------------------
 
-def read_json(path: str)-> dict:
+def read_json(path: pathlib.Path)-> dict:
     """
     read a JSON file
 
     """
-    if not pathlib.Path(path).exists():
+
+    if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
 
     try:
-        with open(path, "r") as f:
+        with path.open("r") as f:
             data = json.load(f)
 
             logger.info(f"Successfully read JSON file from {path}")
@@ -31,12 +31,13 @@ def read_json(path: str)-> dict:
 
 
 
-def read_parquet(path: str)-> pd.DataFrame:
+def read_parquet(path: pathlib.Path)-> pd.DataFrame:
     """
     Read a Parquet file
 
     """
-    if not pathlib.Path(path).exists():
+
+    if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
 
     try:
@@ -53,37 +54,34 @@ def read_parquet(path: str)-> pd.DataFrame:
 # WRITE FUNCTIONS
 # --------------------
 
-def write_json(path: str, file_name: str, data: dict)-> None:
+def write_json(path: pathlib.Path, data: dict)-> None:
     """
     Write data to a JSON file
 
     """
 
-    full_path = build_path(path, file_name, "json")
-
     try:
-        with open(full_path, "w") as f:
+        with path.open("w") as f:
             json.dump(data, f)
 
-            logger.info(f"Successfully wrote JSON file at: {full_path}")
+            logger.info(f"Successfully wrote JSON file at: {path}")
 
     except Exception:
-        logger.exception(f"Failed to write JSON file at {full_path}")
+        logger.exception(f"Failed to write JSON file at {path}")
         raise
 
-def write_parquet(path: str, file_name: str, data: pd.DataFrame)-> None:
+def write_parquet(path: pathlib.Path, data: pd.DataFrame)-> None:
     """
     Write data to a Parquet file
 
     """
-    full_path = build_path(path, file_name, "parquet")
 
     try:
-        data.to_parquet(full_path, index=False)
+        data.to_parquet(path, index=False)
 
-        logger.info(f"Successfully wrote Parquet file at: {full_path}")
+        logger.info(f"Successfully wrote Parquet file at: {path}")
 
     except Exception:
-        logger.exception(f"Failed to write Parquet file at {full_path}")
+        logger.exception(f"Failed to write Parquet file at {path}")
         raise
 

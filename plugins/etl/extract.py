@@ -2,8 +2,9 @@ from plugins.utils.api_io import request_api
 from plugins.utils.generate_token import get_token
 from plugins.validations.validate_payload import validate_payload
 from plugins.utils.file_io import write_json
+from plugins.utils.paths import raw_file
 
-def extract_from_api(run_id, path: str):
+def extract_from_api(run_id):
     #TODO: decide on how to handle malformed struct
     """
     create token for auth, request data and validate structure, fail DAG if malformed
@@ -21,4 +22,5 @@ def extract_from_api(run_id, path: str):
             f"[run_id={run_id}] Invalid payload: {issues}"
         )
 
-    write_json(path=path, file_name=f"opensky_raw_{run_id}", data=data)
+    path = raw_file(run_id=run_id)
+    write_json(path=path, data=data)
