@@ -226,3 +226,6 @@ logs/
 
 # Airflow project local config (do not version)
 config/
+
+data/
+validation_reasoning.txt
