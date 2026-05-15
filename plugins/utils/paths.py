@@ -9,7 +9,7 @@ with open("config/path_config.yaml", "r") as file:
 RAW_DIR = Path(path["paths"]["raw_storage"])
 TRANSFORMED_DIR = Path(path["paths"]["transformed_storage"])
 LOG_DIR = Path(path["paths"]["logs_storage"])
-
+CLEANED_DIR = Path(path["paths"]["cleaned_storage"])
 
 
 def raw_file(run_id: str) -> Path:

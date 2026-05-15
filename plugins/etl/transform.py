@@ -37,3 +37,24 @@ def transform_raw_data(run_id):
 
     path_transformed = transformed_file(run_id)
     write_parquet(path=path_transformed, data=transformed_data)
+
+def cleanse_data(staged_data: pd.DataFrame) -> pd.DataFrame:
+    drop_cols = ["sensors", "spi", "position_source"]
+    strip_cols = ["icao24", "callsign", "origin_country"]
+
+    cleaned_data = staged_data
+
+    cleaned_data[strip_cols] = (
+        cleaned_data[strip_cols]
+        .astype(str)
+        .apply(lambda col: col.str.strip())
+    )
+
+    cleaned_data = (
+        cleaned_data
+        .drop(columns=drop_cols)
+        .drop_duplicates()
+        .dropna(subset=["icao24", "callsign"])
+    )
+
+    return cleaned_data
