@@ -1,8 +1,14 @@
+import json
+import time
+
+from datetime import datetime, UTC
+
 from plugins.utils.api_io import request_api
 from plugins.utils.generate_token import get_token
 from plugins.validations.validate_payload import validate_payload
-from plugins.utils.file_io import write_json
-from plugins.utils.paths import raw_file
+from plugins.utils.file_io import write_json, write_jsonl
+from plugins.utils.paths import raw_file, raw_log_file
+from plugins.logging.raw_valid_log import create_raw_valid_log, update_log
 
 def extract_from_api(run_id):
     #TODO: decide on how to handle malformed struct
@@ -11,16 +17,44 @@ def extract_from_api(run_id):
     :param run_id:
     :param path:
     """
-    token = get_token()
 
-    data = request_api(token=token)
+    log_entry = None
+    start = time.perf_counter()
 
-    issues = validate_payload(data)
+    try:
+        log_entry = create_raw_valid_log(run_id=run_id)
 
-    if issues:
-        raise ValueError(
-            f"[run_id={run_id}] Invalid payload: {issues}"
+        token = get_token()
+
+        data = request_api(token=token)
+        update_log(log=log_entry,
+            state_count=len(data.get("states", [])),
+            invalid_state_vectors=sum(len(s) != 17 for s in data.get("states", [])),
+            fetch_time_utc=datetime.now(UTC).isoformat(),
+            opensky_time=data.get("time"),
+            fetch_success=True,
+            response_size_bytes=len(json.dumps(data).encode("utf-8"))
         )
 
-    path = raw_file(run_id=run_id)
-    write_json(path=path, data=data)
+        issues = validate_payload(data)
+
+
+        if issues:
+            update_log(log_entry, validation_errors=issues)
+
+            raise ValueError(f"[run_id={run_id}] Invalid payload: {issues}")
+
+        update_log(log_entry, validation_success=True)
+
+        path = raw_file(run_id=run_id)
+        write_json(path=path, data=data)
+
+        update_log(log_entry, payload_saved=True)
+
+    finally:
+        update_log(
+            log_entry,
+            processing_duration_seconds=round(time.perf_counter() - start,4)
+        )
+        path_log = raw_log_file()
+        write_jsonl(path=path_log, log_entry=log_entry)

@@ -70,6 +70,23 @@ def write_json(path: pathlib.Path, data: dict)-> None:
         logger.exception(f"Failed to write JSON file at {path}")
         raise
 
+def write_jsonl(path: pathlib.Path, log_entry: dict):
+    """
+    Append log_entry to a JSONL file
+
+    """
+
+    try:
+        with path.open("a") as f:
+            f.write(json.dumps(log_entry) + "\n")
+
+            logger.info(f"Successfully appended log to  JSONL file at: {path}")
+
+    except Exception:
+        logger.exception(f"Failed to append log to JSONL file at {path}")
+        raise
+
+
 def write_parquet(path: pathlib.Path, data: pd.DataFrame)-> None:
     """
     Write data to a Parquet file

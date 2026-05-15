@@ -20,7 +20,12 @@ def transformed_file(run_id: str) -> Path:
     TRANSFORMED_DIR.mkdir(parents=True, exist_ok=True)
     return TRANSFORMED_DIR / f"opensky_transformed_{run_id}.parquet"
 
-def log_file(run_id: str) -> Path:
+def raw_log_file() -> Path:
     LOG_DIR.mkdir(parents=True, exist_ok=True)
-    return LOG_DIR / f"opensky_log_{run_id}.json"
+    return LOG_DIR / f"opensky_raw_valid_log.jsonl"
+
+
+def transformed_log_file() -> Path:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    return LOG_DIR / f"opensky_transformed_valid_log.jsonl"
 

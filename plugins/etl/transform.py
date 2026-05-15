@@ -1,8 +1,8 @@
 import pandas as pd
 import yaml
 
-from plugins.utils.file_io import read_json, write_parquet
-from plugins.utils.paths import raw_file, transformed_file, log_file
+from plugins.utils.file_io import read_json, write_parquet, write_jsonl
+from plugins.utils.paths import raw_file, transformed_file, transformed_log_file
 from plugins.validations.validate_schema import validate_dataframe_schema
 
 
@@ -21,8 +21,19 @@ def transform_raw_data(run_id):
     transformed_data.columns = columns[:transformed_data.shape[1]]
     transformed_data.insert(0, 'time', raw_data['time'])
 
-    path_logs = log_file(run_id=run_id)
-    validate_dataframe_schema(path=path_logs, df=transformed_data)
+    validation = validate_dataframe_schema(df=transformed_data)
+
+    log_entry = {
+        "run_id": run_id,
+        "status": 'valid'
+    }
+
+    if not validation['valid']:
+        log_entry['status'] = 'invalid'
+        log_entry['errors'] = validation['errors']
+
+    path_logs = transformed_log_file()
+    write_jsonl(path=path_logs,log_entry=log_entry)
 
     path_transformed = transformed_file(run_id)
     write_parquet(path=path_transformed, data=transformed_data)
