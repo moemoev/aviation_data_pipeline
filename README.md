@@ -6,80 +6,78 @@ This project explores aviation data from the OpenSky API and incrementally build
 
 The goals of this project are to:
 
-- Retrieve aviation data from the OpenSky API  
+- Retrieve aviation data from the <u>OpenSky API</u>  
 - Explore and understand the dataset structure  
 - Transform raw state vectors into a structured format  
-- Establish the foundation for an ETL pipeline using Apache Airflow  
+- Establish the foundation for an ETL pipeline using <u>Apache Airflow</u>
+- Clean, enrich, and model raw data to support additional analysis and business intelligence use cases
+- Visualize aviation data and derived insights
+- Automate the pipeline to build a reliable system that keeps recent data queryable for analytical purposes while archiving historical data for future retrieval
 
 ## Pipeline Architecture
-OpenSky API → Airflow DAG → Transform (Pandas) → Validate (Pandera) → CSV → PostgreSQL
+OpenSky API → Airflow DAG → Transform (Pandas) → Validate (Pandera) → Parquet → PostgreSQL
+(Currently being refactored after recognizing that constant file I/O between <u>Apache Airflow</u> tasks is unnecessary for preventing in-memory data persistence.)
 
 ## Current Status
 
 ### Pipeline Implementation
-- Data extraction from OpenSky API  
+- Data extraction from <u>OpenSky API</u>  
 - Transformation of state vectors into tabular format
-- Loading from CSV into local PostgreSQL DB on on a separated VM within a private network
+- Loading from Parquet into local <u>PostgreSQL</u> database on on a separated VM within a private network
 - Execution of the workflow using Apache Airflow Containers on host OS
+- Extraction of raw data from raw_layer, cleansing and transformation of the dataset, and loading of processed data into the cleaned_layer
 
 ### Orchestration
 - DAG scheduling has been implemented and verified (automatic scheduled runs working)  
-- Pipeline logic has been partially modularized (configuration values like paths and API endpoints are now variable-based instead of fully hardcoded)  
+- Pipeline logic has been modularized
 
 ### Engineering Improvements
 - Basic schema definition has been introduced for transformed data columns  
-- Initial error handling added for API requests and data transformation steps  
-
+- Added basic error detection for API requests and transformation steps; comprehensive error handling has not yet been implemented
 
 ### Data Validation
 
-Introduced validations module: `plugins/validations/schema.py` `plugins/validations/validate_schema.py`
-
-- `aviation_schema`
-- `validate_dataframe_schema(df, path)`
-
-Updated Docker Compose .env to include:
-`_PIP_ADDITIONAL_REQUIREMENTS=pandera`
-`POSTGRES_USER`
-`POSTGRES_PASSWORD`
-`POSTGRES_HOST`
-`POSTGRES_PORT`
-`POSTGRES_DB`
-
-This allows:
-- schema validation via Pandera
-- externalized database configuration (no hardcoding inside DAGs)
-
+Introduced validations module: 
+- Verify that raw payloads conform to expected structural and data type requirements
+- Log valid and invalid records during processing raw data
 
 ### Design decisions
 - Data is stored in `/tmp` inside the container (ephemeral storage)
-- Pipeline logic is implemented directly inside the DAG  
-- Focus on simplicity to verify functionality before adding complexity  
-- Some configuration values (paths, API endpoints) have been extracted into variables
+- The initial decision to implement multiple file read/write operations during extraction and ingestion into the raw_layer was based on the misconception that ETL pipelines must always be separated into distinct Extract, Transform, and Load stages
+- Configuration values and connection parameters have been externalized from the source code
 
 ### Limitations
-- Data is not persisted across container restarts 
-- Basic error handling exists for read/write operations, but no full retry strategy yet  
-- Schema validation is still minimal (initial Pandera integration only)
-- Some configuration values are still partially hardcoded
+- Data can be persistant accross container restarts, but has to be implemented by using the DB accordingly
+- Basic error detection on some parts exists for read/write operations, but no full retry or recovery has been implemented strategy yet  
+- Schema validation has been improved, but its integration remains limited due to earlier architectural misconceptions regarding ETL task separation
 - Pipeline is still in early testing phase and primarily manually triggered for debugging
+- The initial ingestion pipeline for API extraction still performs intermediate file read/write operations between tasks, resulting in unnecessary I/O overhead
 
 ### Next Improvements
 
 #### Data Layer
-- Design staging structure inside PostgreSQL
-- Improve schema enforcement during transformation
-- Transform data into more structured relational format
+- Design layered raw / cleaned /enriched / BI architecture within <u>PostgreSQL</u>
+- Improve schema enforcement and validation during transformation stages
+- Enrich data for future analysis
+- Model data using dimensional modeling principles
 
 #### Pipeline
-- Strengthen schema validation using Pandera
-- Add backfilling support from API
+- Build the initial data cleaning, enrichment, and modeling workflows using the database as the central storage architecture
+- Establish fixed scheduling intervals for automated data ingestion and update cycles
+- Use database as the acctual data storage instead of writing into ephemeral storage between tasks.
 - Improve scheduling strategy (move beyond manual triggering)
 
 #### Exploration
-- Adjust scope of fetched data (e.g. filter by country)
-- Explore 24/7 ingestion possibilities with authenticated API access
+- Explore 24/7 extraction boundaries using authenticated API access
+- Migrate <u>Apache Airflow</u> from the host OS to a dedicated server to enable continuous 24/7 orchestration
+- Evaluate limits of infrastructure and consider adding worker containers for independant DAG execution
+- Investigate object storage solutions for archival data, as well as audit logs and pipeline logging artifacts
+- reason about the seperation of analytical BI values stored within RDBMS and and a seperate near real time presentation of geospatial positions of airplanes using grafana
+- examine possibilities of messaging possibilities on different logging levels
 
+#### Long-Term Vision
+- Design separation between analytical BI datasets stored in a relational database and a near real-time geospatial visualization layer for aircraft positions using tools such as Grafana
+- Explore messaging and event-driven architectures based on different logging levels for improved observability and system responsiveness
 
 ## Project Structure
 
